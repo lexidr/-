@@ -1,0 +1,100 @@
+import telebot
+from telebot import types
+user_collection = []
+class User():
+    def __init__(self):
+        pass
+    def set_name(self, name):
+        self.name = name
+    def set_surname(self, surname):
+        self.surname = surname
+    def set_age(self, age):
+        self.age = age
+    def set_city(self, city):
+        self.city = city
+    def set_otdel(self, otdel):
+        self.otdel = otdel
+    def set_position(self, position):
+        self.position = position
+    def set_hobbies(self, hobbies):
+        self.hobbies = hobbies
+    def set_info(self, info):
+        self.info = info
+bot = telebot.TeleBot("5969476114:AAEC1x_d8iZ2R2Dum1Q3mTtHk7F3q-LEP30", parse_mode=None) 
+@bot.message_handler(commands=['start'])
+def welcome(message):
+    global obj, user_collection
+    obj = User()
+    user_collection.append(obj)
+    bot.send_message(message.chat.id, "Заполните анкету")
+    input_name(message)
+def input_name(message):
+ bot.send_message(message.chat.id, "Введите имя и фамилию")
+ bot.register_next_step_handler(message, handler_name)
+def handler_name(message):
+    global obj
+    if len(message.text.split()) == 2:
+        obj.set_name(message.text.split()[0])
+        obj.set_surname(message.text.split()[1])
+        input_age(message)
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода")
+        input_name(message)
+def input_age(message):
+ bot.send_message(message.chat.id, "Введите ваш возраст")
+ bot.register_next_step_handler(message, handler_age)
+def handler_age(message):
+    global obj
+    if message.text.isdigit() and int(message.text)>0:
+        obj.set_age(int(message.text))
+        input_job(message)
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода")
+        input_age(message)
+def input_job(message):
+ bot.send_message(message.chat.id, "Введите вашу должность")
+ bot.register_next_step_handler(message, input_department)
+def input_department(message):
+    global obj
+    obj.set_position(message.text)
+    bot.send_message(message.chat.id, "Введите ваш отдел")
+    bot.register_next_step_handler(message, input_city)
+def input_city(message):
+    global obj
+    obj.set_otdel(message.text)
+    bot.send_message(message.chat.id, "Введите город, в котором проживаете")
+    bot.register_next_step_handler(message, input_interests)
+def input_interests(message):
+    global obj
+    obj.set_city(message.text)
+    markup=types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard = False)
+    markup.add("спорт","игры","музыка","что-то редкое","фильмы","книги","творчество", "прекратить выбор")
+    bot.send_message(message.chat.id, "Выберите интересы", reply_markup=markup)
+flag = False
+ans = "Вы выбрали: "
+@bot.message_handler(content_types='text')
+def message_reply(message):
+    global ans, flag, obj, user_collection
+    if message.text == "прекратить выбор":
+        obj.set_hobbies(hobbies)
+        a = types.ReplyKeyboardRemove()
+        bot.send_message(message.chat.id, "Спасибо за ваш выбор", reply_markup=a)
+        for i in user_collection:
+             bot.send_message(message.chat.id, i.name)
+             bot.send_message(message.chat.id, i.surname)
+             bot.send_message(message.chat.id, i.age)
+             bot.send_message(message.chat.id, i.city)
+             bot.send_message(message.chat.id, i.otdel)
+             bot.send_message(message.chat.id, i.position)
+             bot.send_message(message.chat.id, i.hobbies)
+    else:
+        if not(message.text in ans):
+              obj.hobbies.append(message.text)
+              ans = ans + message.text +' ';
+        bot.send_message(message.chat.id, ans)
+        if flag == False:
+             flag = True
+        else:
+              bot.delete_message(message.chat.id, message.message_id-1)
+        bot.delete_message(message.chat.id,message.message_id)
+bot.polling()
