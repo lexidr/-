@@ -1,0 +1,379 @@
+import telebot
+import re
+from telebot import types
+user_collection = []
+
+
+class User():
+    hobbies = ""
+    name = ""
+    surname = ""
+    age = 0
+    city=""
+    otdel=""
+    position=""
+    patronymic=""
+    phone_number=""
+    info = ""
+    used_users = []
+    def __init__(self):
+        pass
+    def set_name(self, name):
+        self.name = name
+    def set_surname(self, surname):
+        self.surname = surname
+    def set_age(self, age):
+        self.age = age
+    def set_city(self, city):
+        self.city = city
+    def set_otdel(self, otdel):
+        self.otdel = otdel
+    def set_position(self, position):
+        self.position = position
+    def set_hobbies(self, hobbies):
+        self.hobbies = hobbies
+        
+        
+bot = telebot.TeleBot("5969476114:AAEC1x_d8iZ2R2Dum1Q3mTtHk7F3q-LEP30", parse_mode=None)
+id = 0
+
+@bot.message_handler(commands=['start'])
+def welcome(message):
+    global user_collection,id,obj
+    obj = User()
+    user_collection.append(obj)
+    obj.id = message.from_user.id
+    bot.send_message(message.chat.id, "Я – чат-бот Атомные встречи! Давайте найдём Вам собеседника!")
+    id = message.from_user.id
+    input_name(message)
+    
+def input_name(message):
+ bot.send_message(message.chat.id, "Вопрос 1 из 8 \nУкажите Ваше ФИО")
+ bot.register_next_step_handler(message, handler_name)
+ 
+def handler_name(message):
+    global obj
+    if len(message.text.split()) == 3:
+        obj.set_name(message.text.split()[0])
+        obj.set_surname(message.text.split()[1])
+        obj.patronymic = message.text.split()[2]
+        input_phone_number(message)
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода.")
+        input_name(message)
+        
+def input_phone_number(message):
+ bot.send_message(message.chat.id, "Вопрос 2 из 8 \nУкажите номер телефона в формате *-***-**-.")
+ bot.register_next_step_handler(message, handler_phone_number)
+ 
+def handler_phone_number(message):
+    global obj
+    phoneRegex = re.compile('''
+    (?:\(?(\d{3})\)?)?             
+    (?:\s|-)?                      
+    (\d{3})                        
+    (?:\s|-)?                      
+    (\d{2})                        
+    (?:\s|-)?                      
+    (\d{2})                        
+    (?:\s*доб[.а-я]*\s*(\d{2,5}))? 
+    ''', re.VERBOSE)
+    if re.match(phoneRegex, message.text) != None:
+        obj.phone_number = message.text
+        input_age(message)
+    else:
+        bot.send_message(message.chat.id, "Непраивльный формат ввода.")
+        input_phone_number(message)
+        
+def input_age(message):
+ bot.send_message(message.chat.id, "Вопрос 3 из 8 \nУкажите Ваш возраст")
+ bot.register_next_step_handler(message, handler_age)
+ 
+def handler_age(message):
+    global obj
+    if message.text.isdigit() and int(message.text)>0:
+        obj.set_age(int(message.text))
+        input_job(message)
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода.")
+        input_age(message)
+        
+def input_job(message):
+     bot.send_message(message.chat.id, 'Вопрос 4 из 8 \nУкажите Вашу должность в АО "Гринатом"')
+     bot.register_next_step_handler(message, input_department)
+ 
+def input_department(message):
+    global obj
+    obj.set_position(message.text)
+    bot.send_message(message.chat.id, 'Вопрос 5 из 8 \nУкажите Ваш отдел в АО "Гринатом"')
+    bot.register_next_step_handler(message, input_city)
+    
+def input_city(message):
+    global obj
+    obj.set_otdel(message.text)
+    bot.send_message(message.chat.id, "Вопрос 6 из 8 \nУкажите Ваш город проживания")
+    bot.register_next_step_handler(message, input_info)
+    
+def input_info(message):
+    global obj
+    obj.set_city(message.text)
+    markup=types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.add("хочу","не хочу")
+    bot.send_message(message.chat.id, "Желаете рассказать о себе?", reply_markup=markup)
+    bot.register_next_step_handler(message, handler_info)
+    
+def handler_info(message):
+    a = types.ReplyKeyboardRemove()
+    if message.text == "хочу":
+        bot.send_message(message.chat.id, "Вопрос 7 из 8 \nРасскажете пару слов о себе", reply_markup=a)
+        bot.register_next_step_handler(message, setter_info)
+    else:
+        bot.send_message(message.chat.id, "Расскажите о своих хобби.", reply_markup=a)
+        input_interests(message)
+        
+def setter_info(message):
+    global obj
+    obj.info = message.text
+    bot.send_message(message.chat.id, "Вопрос 8 из 8 \nРасскажите о своих хобби.")
+    input_interests(message)
+    
+def input_interests(message):
+    global obj
+    bot.send_message(message.chat.id, "Введите одну из предложенных категорий: спорт, игры, музыка, что-то редкое, фильмы, книги, творчество. Следует вводить каждую категорию в отдельном сообщении. Для завершения введите команду прекратить выбор.")
+    bot.register_next_step_handler(message, handler_interests)
+flag = False
+ans = "Вы выбрали: "
+
+def handler_interests(message):
+    global ans, flag, obj, user_collection, count
+    if message.text == "Прекратить выбор" or message.text == "прекратить выбор":
+        if obj.hobbies == "":
+            bot.send_message(message.chat.id, "Вы должны выбрать хотя бы одно из предложенных хобби, которое вам ближе всего")
+            input_interests(message)
+        else:
+            bot.send_message(message.chat.id, "Благодарим за заполнение анкеты.")
+            ans = "Вы выбрали "
+            flag = False
+    elif message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        if not(message.text in ans):
+              obj.hobbies += message.text.lower()+" "
+              ans = ans + message.text.lower() +' ';
+        bot.send_message(message.chat.id, ans)
+        if flag == False:
+             flag = True
+        else:
+              bot.delete_message(message.chat.id, message.message_id-1)
+        bot.delete_message(message.chat.id,message.message_id)
+        bot.register_next_step_handler(message, handler)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, правила ввода.")
+        bot.register_next_step_handler(message, handler)
+        
+def handler(message):
+    if  message.text == "Прекратить выбор" or message.text == "прекратить выбор" or message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        handler_interests(message)
+    elif message.text == "/start":
+        welcome(message)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, формат ввода.")
+        
+        
+@bot.message_handler(commands=['search'])
+def searching(message):
+    global user_collection
+    index = -1
+    for i in range(0,len(user_collection)):
+        if user_collection[i].id == message.from_user.id:
+            index = user_collection.index(user_collection[i])
+    if index == -1:
+        bot.send_message(message.chat.id, "Вы не зарегистрированы. Для регистрации следует ввести команду start.")
+    else:
+        user_collection[index].used_users.append(index)
+        max = -1
+        buf = 0
+        index_max = -1
+        for i in range(0, len(user_collection)):
+            if i != index and not(i in user_collection[index].used_users):
+                for j in user_collection[i].hobbies.split():
+                    if j in user_collection[index].hobbies:
+                        buf += 1
+                if buf > max:
+                    max = buf
+                    index_max = i
+        if index_max == -1:
+            bot.send_message(message.chat.id, "База данных пока пуста.")
+        else:
+            markdown = """
+            *bold text*
+            _italic text_
+            [text](URL)
+            """
+            ret_msg = bot.send_message(message.chat.id, "Мы нашли для вас собеседника!", parse_mode="Markdown")
+            assert ret_msg.message_id
+            bot.send_message(message.chat.id, "*"+user_collection[index_max].name + " " + user_collection[index_max].surname + " " + user_collection[index_max].patronymic +"*" + '\n' + user_collection[index_max].position + '\n' + "г." + user_collection[index_max].city + '\n' + "_Интересы_:"+user_collection[index_max].hobbies + "\n", parse_mode= "Markdown")
+            if user_collection[index_max].info != "":
+                bot.send_message(message.chat.id, "О себе: " + user_collection[index_max].info)
+            bot.send_message(message.chat.id, "+7-" + user_collection[index_max].phone_number)
+            user_collection[index].used_users.append(index_max)
+            if user_collection[index].city == user_collection[index_max].city:
+                bot.send_message(message.chat.id, "Вы живете в одном городе, а значит можете встретиться! :)")
+                
+                
+@bot.message_handler(commands=['edit_full_name'])
+def edit_full_name_(message):
+    bot.send_message(message.chat.id, "Введите измененное ФИО.")
+    bot.register_next_step_handler(message, handler_edit_name)
+    
+def handler_edit_name(message):
+    global obj
+    if len(message.text.split()) == 3:
+        obj.set_name(message.text.split()[0])
+        obj.set_surname(message.text.split()[1])
+        obj.patronymic = message.text.split()[2]
+        bot.send_message(message.chat.id, "ФИО успешно изменено.")
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода.")
+        edit_full_name_(message)
+        
+        
+@bot.message_handler(commands=['edit_age'])
+def edit_age_(message):
+    bot.send_message(message.chat.id, "Введите измененное количество полных лет.")
+    bot.register_next_step_handler(message, handler_edit_age)
+    
+def handler_edit_age(message):
+    global obj
+    if message.text.isdigit() and int(message.text)>0:
+        obj.set_age(int(message.text))
+        bot.send_message(message.chat.id, "Количество полных лет успешно изменено.")
+    else:
+        bot.send_message(message.chat.id, "Неправильный формат ввода.")
+        edit_age_(message)
+        
+        
+@bot.message_handler(commands=['edit_phone_number'])
+def edit_phone_number_(message):
+ bot.send_message(message.chat.id, "Введите измененный номер телефона в формате *-***-**-.")
+ bot.register_next_step_handler(message, handler_edit_phone_number)
+ 
+def handler_edit_phone_number(message):
+    global obj
+    phoneRegex = re.compile('''
+    (?:\(?(\d{3})\)?)?             
+    (?:\s|-)?                      
+    (\d{3})                        
+    (?:\s|-)?                      
+    (\d{2})                        
+    (?:\s|-)?                      
+    (\d{2})                        
+    (?:\s*доб[.а-я]*\s*(\d{2,5}))? 
+    ''', re.VERBOSE)
+    if re.match(phoneRegex, message.text) != None:
+        obj.phone_number = message.text
+        bot.send_message(message.chat.id, "Номер телефона успешно изменен.")
+    else:
+        bot.send_message(message.chat.id, "Непраивльный формат ввода.")
+        edit_phone_number_(message)
+        
+        
+@bot.message_handler(commands=['edit_job'])
+def edit_job_(message):
+ bot.send_message(message.chat.id, "Введите наименование вашей новой должности.")
+ bot.register_next_step_handler(message, handler_edit_job)
+ 
+def handler_edit_job(message):
+    global obj
+    obj.set_position(message.text)
+    bot.send_message(message.chat.id, "Ваша должность успешно изменена.")
+    
+    
+@bot.message_handler(commands=['edit_department'])
+def edit_department_(message):
+    bot.send_message(message.chat.id, "Введите новое название вашего отдела.")
+    bot.register_next_step_handler(message, handler_edit_department)
+    
+def handler_edit_department(message):
+    global obj
+    obj.set_otdel(message.text)
+    bot.send_message(message.chat.id, "Название отдела успешно изменено.")
+    
+    
+@bot.message_handler(commands=['edit_city'])
+def edit_city_(message):
+    bot.send_message(message.chat.id, "Введите город, в котором проживаете теперь.")
+    bot.register_next_step_handler(message, handler_edit_city)
+    
+def handler_edit_city(message):
+    global obj
+    obj.set_city(message.text)
+    bot.send_message(message.chat.id, "Название города успешно изменено.")
+    
+    
+@bot.message_handler(commands=['edit_info'])
+def edit_info_(message):
+        bot.send_message(message.chat.id, "Расскажите о себе что-нибудь новое.")
+        bot.register_next_step_handler(message, edit_handler_info)
+        
+def edit_handler_info(message):
+    global obj
+    obj.info = message.text
+    bot.send_message(message.chat.id, "Информация изменена.")
+    
+    
+@bot.message_handler(commands=['edit_interests'])
+def edit_interests_(message):
+    global obj
+    bot.send_message(message.chat.id, "Введите одну из предложенных категорий: спорт, игры, музыка, что-то редкое, фильмы, книги, творчество. Следует вводить каждую категорию в отдельном сообщении. Для завершения введите команду прекратить выбор.")
+    bot.register_next_step_handler(message, edit_handler_interests)
+flag = False
+ans = "Вы выбрали: "
+
+def edit_handler_interests(message):
+    global ans, flag, obj, user_collection, count
+    if message.text == "Прекратить выбор" or message.text == "прекратить выбор":
+        if obj.hobbies == "":
+            bot.send_message(message.chat.id, "Вы должны выбрать хотя бы одно из предложенных хобби, которое вам ближе всего")
+            input_interests(message)
+        else:
+            bot.send_message(message.chat.id, "Ваши новые хобби успешно сохранены.")
+            ans = "Вы выбрали "
+            flag = False
+    elif message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        if not(message.text in ans):
+              obj.hobbies += message.text.lower()+" "
+              ans = ans + message.text.lower() +' ';
+        bot.send_message(message.chat.id, ans)
+        if flag == False:
+             flag = True
+        else:
+              bot.delete_message(message.chat.id, message.message_id-1)
+        bot.delete_message(message.chat.id,message.message_id)
+        bot.register_next_step_handler(message, handler)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, правила ввода.")
+        bot.register_next_step_handler(message, handler)
+        
+def handler(message):
+    if  message.text == "Прекратить выбор" or message.text == "прекратить выбор" or message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        handler_interests(message)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, формат ввода.")
+        
+        
+@bot.message_handler(commands=['help'])
+def help_(message):
+    bot.send_message(message.chat.id, 'Список команд: \n start - регистрация(анкетирование) \n search - поиск собеседника \n edit_full_name - редактировать ФИО \n edit_age - редактирование возраста \n edit_phone_number - редактирование телефонного номера \n edit_job - редактирование должности \n edit_department - редактирование отдела \n edit_city - редактирование города проживания \n edit_info - редактирование "о себе" \n edit_interests - редактирование хобби \n profile - вывод всей информации о пользователе')
+    
+    
+@bot.message_handler(commands=['profile'])
+def profile_(message):
+    global obj
+    bot.send_message(message.chat.id, "ФИО: "+obj.name + " " + obj.surname + " " + obj.patronymic)
+    bot.send_message(message.chat.id, "Возраст: "+str(obj.age))
+    bot.send_message(message.chat.id, "Номер телефона: +7-"+obj.phone_number)
+    bot.send_message(message.chat.id, "Должность: "+obj.position)
+    bot.send_message(message.chat.id, "Отдел: "+obj.otdel)
+    bot.send_message(message.chat.id, "Город: "+obj.city)
+    bot.send_message(message.chat.id, "Интересы: "+obj.hobbies)
+    bot.send_message(message.chat.id, "О себе: "+obj.info)
+bot.polling()
