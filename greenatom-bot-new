@@ -1,0 +1,63 @@
+bal obj
+    obj.set_city(message.text)
+    bot.send_message(message.chat.id, "Название города успешно изменено.")
+@bot.message_handler(commands=['edit_info'])
+def edit_info_(message):
+        bot.send_message(message.chat.id, "Расскажите о себе что-нибудь новое.")
+        bot.register_next_step_handler(message, edit_handler_info)
+def edit_handler_info(message):
+    global obj
+    obj.info = message.text
+    bot.send_message(message.chat.id, "Информация изменена.")
+@bot.message_handler(commands=['edit_interests'])
+def edit_interests_(message):
+    global obj
+    bot.send_message(message.chat.id, "Введите одну из предложенных категорий: спорт, игры, музыка, что-то редкое, фильмы, книги, творчество. Следует вводить каждую категорию в отдельном сообщении. Для завершения введите команду прекратить выбор.")
+    bot.register_next_step_handler(message, edit_handler_interests)
+flag = False
+ans = "Вы выбрали: "
+def edit_handler_interests(message):
+    global ans, flag, obj, user_collection, count
+    if message.text == "Прекратить выбор" or message.text == "прекратить выбор":
+        if obj.hobbies == "":
+            bot.send_message(message.chat.id, "Вы должны выбрать хотя бы одно из предложенных хобби, которое вам ближе всего")
+            input_interests(message)
+        else:
+            bot.send_message(message.chat.id, "Ваши новые хобби успешно сохранены.") 
+            ans = "Вы выбрали "
+            flag = False
+    elif message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        if not(message.text in ans):
+              obj.hobbies += message.text.lower()+" "
+              ans = ans + message.text.lower() +' ';
+        bot.send_message(message.chat.id, ans)
+        if flag == False:
+             flag = True
+        else:
+              bot.delete_message(message.chat.id, message.message_id-1)
+        bot.delete_message(message.chat.id,message.message_id)
+        bot.register_next_step_handler(message, handler)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, правила ввода.")
+        bot.register_next_step_handler(message, handler)
+def handler(message):
+    if  message.text == "Прекратить выбор" or message.text == "прекратить выбор" or message.text == "Спорт" or message.text == "Игры" or message.text == "Музыка" or message.text == "Что-то редкое" or message.text == "Фильмы" or message.text == "Книги" or message.text == "Творчество" or message.text == "спорт" or message.text == "игры" or message.text == "музыка" or message.text == "что-то редкое" or message.text == "фильмы" or message.text == "книги" or message.text == "творчество":
+        handler_interests(message)
+    else:
+        bot.send_message(message.chat.id, "Соблюдайте, пожалуйста, формат ввода.")
+@bot.message_handler(commands=['help'])
+def help_(message):
+    bot.send_message(message.chat.id, 'Список команд: \n start - регистрация(анкетирование) \n search - поиск собеседника \n edit_full_name - редактировать ФИО \n edit_age - редактирование возраста \n edit_phone_number - редактирование телефонного номера \n edit_job - редактирование должности \n edit_department - редактирование отдела \n edit_city - редактирование города проживания \n edit_info - редактирование "о себе" \n edit_interests - редактирование хобби \n profile - вывод всей информации о пользователе')
+@bot.message_handler(commands=['profile'])
+def profile_(message):
+    global obj
+    bot.send_message(message.chat.id, "ФИО: "+obj.name + " " + obj.surname + " " + obj.patronymic)
+    bot.send_message(message.chat.id, "Возраст: "+str(obj.age))
+    bot.send_message(message.chat.id, "Номер телефона: +7-"+obj.phone_number)
+    bot.send_message(message.chat.id, "Должность: "+obj.position)
+    bot.send_message(message.chat.id, "Отдел: "
++obj.otdel)
+    bot.send_message(message.chat.id, "Город: "+obj.city)
+    bot.send_message(message.chat.id, "Интересы: "+obj.hobbies)
+    bot.send_message(message.chat.id, "О себе: "+obj.info)
+bot.polling()
